@@ -17,7 +17,7 @@ x7zipfile is a thin [7-zip](https://www.7-zip.org/) extract command wrapper for 
  - 7-zip **16** or later
 
 ### Download
- - Download x7zipfile from [the github code page](https://github.com/UuuNyaa/x7zipfile/blob/main/src/x7zipfile.py)
+ - Download `x7zipfile.py` from [the github code page](https://github.com/UuuNyaa/x7zipfile/blob/main/src/x7zipfile.py)
    - https://github.com/UuuNyaa/x7zipfile/blob/main/src/x7zipfile.py
 
 ### Install
