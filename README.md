@@ -47,3 +47,7 @@ namespace = 'x7zipfile'
 loader = importlib.machinery.SourceFileLoader(namespace, '/path/to/x7zipfile.py')
 x7zipfile = loader.load_module(namespace)
 ```
+
+## References
+- Code: [markokr/rarfile](https://github.com/markokr/rarfile)
+- Test archives: [miurahr/py7zr](https://github.com/miurahr/py7zr)
