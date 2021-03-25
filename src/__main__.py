@@ -31,24 +31,22 @@ def main():
 
     if options.command == 'l':
         with x7zipfile.x7ZipFile(options.archive_name.name, pwd=options.password) as zipfile:
-            total_compress_size = 0
-
-            nofilter = len(options.file_names) == 0
-            members = set(options.file_names)
-            info_list = []
-            for info in zipfile.infolist():
-                total_compress_size += info.compress_size or 0
-                if nofilter or info.filename in members:
-                    info_list.append(info)
-
             print('   Date      Time    Attr         Size   Compressed  Name')
             print('------------------- ----- ------------ ------------  ------------------------')
 
+            total_compress_size = 0
             total_file_size = 0
             file_count = 0
             folder_count = 0
+            nofilter = len(options.file_names) == 0
+            members = set(options.file_names)
 
-            for info in info_list:
+            for info in zipfile.infolist():
+                total_compress_size += info.compress_size or 0
+
+                if not nofilter and info.filename not in members:
+                    continue
+
                 date_time = info.date_time
                 if date_time is None:
                     print(' '*19, end=' ')

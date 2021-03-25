@@ -339,11 +339,8 @@ class x7ZipFile:
 
         self._executor = get_executor()
 
-        self._info_list = self._executor.execute_list(self._file, password=pwd)
-        self._info_map = {
-            info.filename: info
-            for info in self._info_list
-        }
+        self._info_list = None
+        self._info_map = None
 
     def __enter__(self) -> x7ZipInfo:
         """Open context."""
@@ -385,11 +382,19 @@ class x7ZipFile:
     def infolist(self) -> List[x7ZipInfo]:
         """Return x7ZipInfo objects for all files/directories in archive.
         """
+        if self._info_list is None:
+            self._info_list = self._executor.execute_list(self._file, password=self._pwd)
         return self._info_list
 
     def getinfo(self, member: str) -> x7ZipInfo:
         """Return x7ZipInfo for file.
         """
+        if self._info_map is None:
+            self._info_map = {
+                info.filename: info
+                for info in self.infolist()
+            }
+
         try:
             return self._info_map[member]
         except KeyError:
