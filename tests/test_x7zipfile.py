@@ -10,7 +10,7 @@ import stat
 import tempfile
 import unittest
 
-from tests import x7ZipExecError, x7ZipFile, x7ZipNoEntry
+from tests import x7zipfile
 
 from .archives import ARCHIVES, ARCHIVES_PATH
 
@@ -19,7 +19,7 @@ class TestCase(unittest.TestCase):
     def test_archive_list(self):
         for archive_name, password, _, expected_infolist in ARCHIVES:
             with self.subTest():
-                with x7ZipFile(os.path.join(ARCHIVES_PATH, archive_name), pwd=password) as zipfile:
+                with x7zipfile.x7ZipFile(os.path.join(ARCHIVES_PATH, archive_name), pwd=password) as zipfile:
                     for actual_info, expected_info in zip(zipfile.infolist(), expected_infolist):
                         actual_info.needs_password()
                         actual_info.is_dir()
@@ -31,9 +31,9 @@ class TestCase(unittest.TestCase):
             try:
                 with self.subTest(f'{archive_name} on {temp_dir}'):
                     expected_infos = {info.filename: info for info in expected_infolist}
-                    with x7ZipFile(os.path.join(ARCHIVES_PATH, archive_name), pwd=password) as zipfile:
+                    with x7zipfile.x7ZipFile(os.path.join(ARCHIVES_PATH, archive_name), pwd=password) as zipfile:
                         if error_message:
-                            with self.assertRaisesRegex(x7ZipExecError, error_message):
+                            with self.assertRaisesRegex(x7zipfile.x7ZipExecError, error_message):
                                 zipfile.extractall(temp_dir)
                             continue
 
@@ -48,7 +48,7 @@ class TestCase(unittest.TestCase):
                                     _ = zipfile.getinfo(actual_member)
                                     expected_info = expected_infos[actual_member]
                                     del expected_infos[actual_member]
-                                except x7ZipNoEntry:
+                                except x7zipfile.x7ZipNoEntry:
                                     expected_info = None
 
                                 actual_stat = os.lstat(actual_file)

@@ -61,41 +61,84 @@ class x7ZipCannotExec(x7ZipExecError):
 
 @dataclass
 class x7ZipInfo:
+    """An entry in 7-zip archive.
+
+    Attributes:
+
+        filename
+            File name with relative path.
+            Path separator is "/".  Always unicode string.
+
+        date_time
+            File modification timestamp. As tuple of (year, month, day, hour, minute, second).
+            7-zip allows archives where it is missing, it's None then.
+
+        file_size
+            Uncompressed size.
+
+        compress_size
+            Compressed size.
+
+        compress_type
+            Compression method: eg. LZMA, LZMA2, PPMD, ...
+
+        encrypted
+            Encryption state: '+' = encrypted, '-' = not encrypted.
+
+        mode
+            File attributes. May be either dos-style or unix-style, depending on host_os.
+
+        CRC
+            CRC-32 of uncompressed file, unsigned int.
+
+            RAR5: may be None.
+
+    """
     filename: Union[str, None]
+    date_time: Union[Tuple[int, int, int, int, int, int], None] = None
     file_size: Union[int, None] = None
     compress_size: Union[int, None] = None
-    date_time: Union[Tuple[int, int, int, int, int, int], None] = None
-    CRC: Union[int, None] = None
-    mode: Union[str, None] = None
-    encrypted: Union[str, None] = None
     compress_type: Union[str, None] = None
+    encrypted: Union[str, None] = None
+    mode: Union[str, None] = None
+    CRC: Union[int, None] = None
     block: Union[int, None] = None
 
     def is_dir(self) -> bool:
+        """Returns True if entry is a directory.
+        """
         if self.mode is None:
             return False
 
         return 'D' in self.mode
 
+    def is_symlink(self) -> bool:
+        """Returns True if entry is a symlink.
+        """
+        if self.mode is None:
+            return False
+
+        return ' l' in self.mode
+
     def is_file(self) -> bool:
+        """Returns True if entry is a normal file.
+        """
         if self.mode is None:
             return False
 
         return 'A' in self.mode
 
     def is_readonly(self) -> bool:
+        """Returns True if entry is a readonly file.
+        """
         if self.mode is None:
             return False
 
         return 'R' in self.mode
 
-    def is_symlink(self) -> bool:
-        if self.mode is None:
-            return False
-
-        return ' l' in self.mode
-
     def needs_password(self) -> bool:
+        """Returns True if entry is stored password-protected.
+        """
         return self.encrypted == '+'
 
 
@@ -248,7 +291,7 @@ class _Executor:
         if other_options is not None:
             command.extend(other_options)
 
-        for line in self.execute(command):
+        for _ in self.execute(command):
             pass
 
 
@@ -274,6 +317,9 @@ def get_executor() -> _Executor:
 
 
 class x7ZipFile:
+    """Class with methods to open, close, list 7-zip files.
+    """
+
     def __init__(
         self,
         file: Union[str, bytes, os.PathLike],
@@ -281,6 +327,8 @@ class x7ZipFile:
         pwd: Union[str, None] = None,
         charset=None,
     ):
+        """Open the 7-zip file with mode read 'r'.
+        """
         self._file = file if not isinstance(file, os.PathLike) else str(file)
         self._charset = charset
 
@@ -306,28 +354,57 @@ class x7ZipFile:
         self.close()
 
     def open(self):
-        pass
+        """Returns file-like object (:class:`x7ZipExtFile`) from where the data can be read.
+
+        The object implements :class:`io.RawIOBase` interface, so it can
+        be further wrapped with :class:`io.BufferedReader`
+        and :class:`io.TextIOWrapper`.
+
+        On older Python where io module is not available, it implements
+        only .read(), .seek(), .tell() and .close() methods.
+
+        The object is seekable, although the seeking is fast only on
+        uncompressed files, on compressed files the seeking is implemented
+        by reading ahead and/or restarting the decompression.
+
+        Parameters:
+
+            name
+                file name or RarInfo instance.
+            mode
+                must be 'r'
+            pwd
+                password to use for extracting.
+        """
+        raise NotImplementedError('x7ZipFile does not yet support open')
 
     def close(self):
+        """Release open resources."""
         pass
 
     def infolist(self) -> List[x7ZipInfo]:
+        """Return x7ZipInfo objects for all files/directories in archive.
+        """
         return self._info_list
 
     def getinfo(self, member: str) -> x7ZipInfo:
+        """Return x7ZipInfo for file.
+        """
         try:
             return self._info_map[member]
         except KeyError:
             raise x7ZipNoEntry(f'No such file: {member}') from None
 
     def namelist(self) -> List[str]:
+        """Return list of filenames in archive.
+        """
         return [info.filename for info in self.infolist()]
 
     @staticmethod
     def to_filename(member: Union[str, x7ZipInfo]) -> str:
         return member.filename if isinstance(member, x7ZipInfo) else member
 
-    def extract(self, member: Union[str, x7ZipInfo],  path: Union[str, None] = None, pwd: Union[str, None] = None):
+    def extract(self, member: Union[str, x7ZipInfo], path: Union[str, None] = None, pwd: Union[str, None] = None):
         """Extract single file into current directory.
 
         Parameters:

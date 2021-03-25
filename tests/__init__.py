@@ -15,8 +15,8 @@ loader = importlib.machinery.SourceFileLoader(
     )
 )
 
-_x7zipfile = loader.load_module(namespace)
-x7ZipInfo = _x7zipfile.x7ZipInfo
-x7ZipFile = _x7zipfile.x7ZipFile
-x7ZipNoEntry = _x7zipfile.x7ZipNoEntry
-x7ZipExecError = _x7zipfile.x7ZipExecError
+x7zipfile = loader.load_module(namespace)
+x7ZipInfo = x7zipfile.x7ZipInfo
+x7ZipFile = x7zipfile.x7ZipFile
+x7ZipNoEntry = x7zipfile.x7ZipNoEntry
+x7ZipExecError = x7zipfile.x7ZipNoEntry

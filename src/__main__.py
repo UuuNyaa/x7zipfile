@@ -5,7 +5,7 @@
 import argparse
 import sys
 
-from x7zipfile import x7ZipFile
+import x7zipfile
 
 
 def main():
@@ -30,7 +30,7 @@ def main():
     options = parser.parse_args()
 
     if options.command == 'l':
-        with x7ZipFile(options.archive_name.name, pwd=options.password) as zipfile:
+        with x7zipfile.x7ZipFile(options.archive_name.name, pwd=options.password) as zipfile:
             total_compress_size = 0
 
             nofilter = len(options.file_names) == 0
@@ -86,7 +86,7 @@ def main():
             print()
 
     elif options.command == 'x':
-        with x7ZipFile(options.archive_name.name) as zipfile:
+        with x7zipfile.x7ZipFile(options.archive_name.name) as zipfile:
             zipfile.extractall(
                 path=options.output_directory,
                 members=options.file_names if len(options.file_names) > 0 else None,
