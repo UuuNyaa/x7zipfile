@@ -29,28 +29,29 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import re
 import datetime
 import errno
 import os
+import re
 import subprocess
 import sys
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Callable, Dict, Iterator, List, Tuple, Union
 
-WIN32 = sys.platform == "win32"
+_WIN32 = sys.platform == "win32"
+_EXECUTABLES = ['7z', '7za', '7zr'] + (['7z.exe', '7za.exe', '7zr.exe'] if _WIN32 else [])
 
 
-class Error(Exception):
+class x7ZipError(Exception):
     """Base class for x7zipfile errors."""
 
 
-class No7ZipEntry(Error):
+class x7ZipNoEntry(x7ZipError):
     """File not found in archive"""
 
 
-class x7ZipExecError(Error):
+class x7ZipExecError(x7ZipError):
     """Problem reported by 7-zip."""
 
 
@@ -74,26 +75,33 @@ class x7ZipInfo:
         if self.mode is None:
             return False
 
-        return self.mode.startswith('D')
+        return 'D' in self.mode
 
     def is_file(self) -> bool:
         if self.mode is None:
             return False
 
-        return self.mode.startswith('A')
+        return 'A' in self.mode
+
+    def is_readonly(self) -> bool:
+        if self.mode is None:
+            return False
+
+        return 'R' in self.mode
+
+    def is_symlink(self) -> bool:
+        if self.mode is None:
+            return False
+
+        return ' l' in self.mode
 
     def needs_password(self) -> bool:
         return self.encrypted == '+'
 
 
-class ExecutorABC(ABC):
-    @property
-    @abstractmethod
-    def executable(self) -> str:
-        pass
-
-    def list_command(self, file: str) -> List[str]:
-        return [self.executable, 'l', '-slt', '-sccUTF-8', file]
+class _Executor:
+    def __init__(self, executable: str):
+        self.executable = executable
 
     def is_available(self) -> bool:
         try:
@@ -107,7 +115,7 @@ class ExecutorABC(ABC):
     def _popen(self, command: Union[str, List[str]]) -> subprocess.Popen:
         """Disconnect command from parent fds, read only from stdout.
         """
-        creationflags = 0x08000000 if WIN32 else 0  # CREATE_NO_WINDOW
+        creationflags = 0x08000000 if _WIN32 else 0  # CREATE_NO_WINDOW
         try:
             return subprocess.Popen(
                 command,
@@ -133,52 +141,54 @@ class ExecutorABC(ABC):
                 yield line.decode('utf-8').rstrip(linesep)
 
             if not line and p.poll() is not None:
-                exit_code = p.poll()
-                error_message = p.stderr.read().decode('utf-8').strip()
+                break
 
-                for stream in [p.stdin, p.stdout, p.stderr]:
-                    try:
-                        stream.close()
-                    except:
-                        pass
+        exit_code = p.poll()
+        error_message = p.stderr.read().decode('utf-8').strip()
 
-                if exit_code == 0:
-                    break
+        for stream in [p.stdin, p.stdout, p.stderr]:
+            try:
+                stream.close()
+            except:
+                pass
 
-                if exit_code == 1:
-                    raise x7ZipExecError(f'Warning: {error_message}')
-                elif exit_code == 2:
-                    raise x7ZipExecError(f'Fatal error: {error_message}')
-                elif exit_code == 7:
-                    raise x7ZipExecError(f'Command line error: {error_message}')
-                elif exit_code == 8:
-                    raise x7ZipExecError(f'Not enough memory for operation: {error_message}')
-                elif exit_code == 255:
-                    raise x7ZipExecError(f'User stopped the process: {error_message}')
-                else:
-                    raise x7ZipExecError(error_message)
+        if exit_code == 0:
+            return
+
+        if exit_code == 1:
+            raise x7ZipExecError(f'Warning: {error_message}')
+        elif exit_code == 2:
+            raise x7ZipExecError(f'Fatal error: {error_message}')
+        elif exit_code == 7:
+            raise x7ZipExecError(f'Command line error: {error_message}')
+        elif exit_code == 8:
+            raise x7ZipExecError(f'Not enough memory for operation: {error_message}')
+        elif exit_code == 255:
+            raise x7ZipExecError(f'User stopped the process: {error_message}')
+        else:
+            raise x7ZipExecError(error_message)
+
+    _parsers: Tuple[str, int, Callable[[str], str]] = [
+        (
+            param[0],
+            param[1],
+            param[2],
+            len(param[0]),
+        )
+        for param in [
+            ('Path = ', 'filename', lambda p: p),
+            ('Size = ', 'file_size', lambda p: int(p) if p else None),
+            ('Packed Size = ', 'compress_size', lambda p: int(p) if p else None),
+            ('Modified = ', 'date_time', lambda p: tuple([int(v) for v in re.split(r'[ \-:]', p)]) if p else None),
+            ('Attributes = ', 'mode', lambda p: p),
+            ('CRC = ', 'CRC', lambda p: int(p, 16) if p else None),
+            ('Encrypted = ', 'encrypted', lambda p: p),
+            ('Method = ', 'compress_type', lambda p: p if p else None),
+            ('Block = ', 'block', lambda p: int(p) if p else None),
+        ]
+    ]
 
     def execute_list(self, archive_name: str, password: Union[str, None] = None) -> List[x7ZipInfo]:
-        parsers: Tuple[str, int, Callable[[str], str]] = [
-            (
-                parse_parameter[0],
-                parse_parameter[1],
-                parse_parameter[2],
-                len(parse_parameter[0])
-            )
-            for parse_parameter in [
-                ('Path = ', 'filename', lambda p: p),
-                ('Size = ', 'file_size', lambda p: int(p) if p else None),
-                ('Packed Size = ', 'compress_size', lambda p: int(p) if p else None),
-                ('Modified = ', 'date_time', lambda p: tuple([int(v) for v in re.split(r'[ \-:]', p)]) if p else None),
-                ('Attributes = ', 'mode', lambda p: p),
-                ('CRC = ', 'CRC', lambda p: int(p, 16) if p else None),
-                ('Encrypted = ', 'encrypted', lambda p: p),
-                ('Method = ', 'compress_type', lambda p: p if p else None),
-                ('Block = ', 'block', lambda p: int(p) if p else None),
-            ]
-        ]
-
         info_list: List[x7ZipInfo] = []
         info = None
         for line in self.execute([
@@ -189,14 +199,14 @@ class ExecutorABC(ABC):
             f"-p{password or ''}",
             archive_name,
         ]):
-            for prefix, property_name, parse_property, prefix_length in parsers:
+            for prefix, property_name, parse_property, prefix_length in self._parsers:
                 if not line.startswith(prefix):
                     continue
 
                 try:
                     value = parse_property(line[prefix_length:])
                 except:
-                    raise Error(f'parse error: {line}')
+                    raise x7ZipError(f'parse error: {line}')
 
                 if prefix == 'Path = ':
                     if info is not None:
@@ -239,41 +249,23 @@ class ExecutorABC(ABC):
             command.extend(other_options)
 
         for line in self.execute(command):
-            print(line)
+            pass
 
 
-class Command7zaExecutor(ExecutorABC):
-    @property
-    def executable(self) -> str:
-        return '7za'
+_EXECUTOR: _Executor = None
 
 
-class Command7zrExecutor(Command7zaExecutor):
-    @property
-    def executable(self) -> str:
-        return '7zr'
+def get_executor() -> _Executor:
+    global _EXECUTOR
 
+    if _EXECUTOR is not None:
+        return _EXECUTOR
 
-class Command7zExecutor(Command7zaExecutor):
-    @property
-    def executable(self) -> str:
-        return '7z'
-
-
-EXECUTOR: ExecutorABC = None
-
-
-def get_executor() -> ExecutorABC:
-    global EXECUTOR
-
-    if EXECUTOR is not None:
-        return EXECUTOR
-
-    for executor_class in [Command7zExecutor, Command7zaExecutor, Command7zrExecutor]:
-        executor = executor_class()
+    for executable in _EXECUTABLES:
+        executor = _Executor(executable)
         if executor.is_available():
-            EXECUTOR = executor
-            return EXECUTOR
+            _EXECUTOR = executor
+            return _EXECUTOR
 
     raise x7ZipCannotExec(
         'Cannot find working 7-zip command. '
@@ -305,7 +297,7 @@ class x7ZipFile:
             for info in self._info_list
         }
 
-    def __enter__(self):
+    def __enter__(self) -> x7ZipInfo:
         """Open context."""
         return self
 
@@ -326,18 +318,22 @@ class x7ZipFile:
         try:
             return self._info_map[member]
         except KeyError:
-            raise No7ZipEntry(f'No such file: {member}') from None
+            raise x7ZipNoEntry(f'No such file: {member}') from None
 
     def namelist(self) -> List[str]:
         return [info.filename for info in self.infolist()]
 
-    def extract(self, member: str,  path: Union[str, None] = None, pwd: Union[str, None] = None):
+    @staticmethod
+    def to_filename(member: Union[str, x7ZipInfo]) -> str:
+        return member.filename if isinstance(member, x7ZipInfo) else member
+
+    def extract(self, member: Union[str, x7ZipInfo],  path: Union[str, None] = None, pwd: Union[str, None] = None):
         """Extract single file into current directory.
 
         Parameters:
 
             member
-                filename or :class:`RarInfo` instance
+                filename or :class:`x7ZipInfo` instance
             path
                 optional destination path
             pwd
@@ -346,12 +342,12 @@ class x7ZipFile:
         self._executor.execute_extract(
             archive_name=self._file,
             output_directory=path,
-            file_names=[member],
+            file_names=[x7ZipFile.to_filename(member)],
             password=pwd or self._pwd,
             other_options=['-y']
         )
 
-    def extractall(self, path: Union[str, None] = None, members: Union[List[str], None] = None, pwd: Union[str, None] = None):
+    def extractall(self, path: Union[str, None] = None, members: Union[List[Union[str, x7ZipInfo]], None] = None, pwd: Union[str, None] = None):
         """Extract all files into current directory.
 
         Parameters:
@@ -359,14 +355,14 @@ class x7ZipFile:
             path
                 optional destination path
             members
-                optional filename or :class:`RarInfo` instance list to extract
+                optional filename or :class:`x7ZipInfo` instance list to extract
             pwd
                 optional password to use
         """
         self._executor.execute_extract(
             archive_name=self._file,
             output_directory=path,
-            file_names=members,
+            file_names=[x7ZipFile.to_filename(member) for member in members] if members else None,
             password=pwd or self._pwd,
             other_options=['-y']
         )

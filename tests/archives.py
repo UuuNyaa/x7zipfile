@@ -1,65 +1,69 @@
 # -*- coding: utf-8 -*-
 # Copyright 2021 UuuNyaa <UuuNyaa@gmail.com>
 # This file is part of x7zipfile.
-import os
 
-from x7zipfile.x7zipfile import x7ZipInfo
+import dataclasses
+import os
+from datetime import datetime, timezone
+from operator import attrgetter
+
+from tests import x7ZipInfo
 
 ARCHIVES_PATH = os.path.join(os.path.dirname(__file__), 'archives')
 
-# The time zone for date_time is UTC.
-ARCHIVES = [
-    ('bcj.bin', '', [
+# The time zone of date_time is UTC.
+_ARCHIVES = [
+    ('bcj.bin', '', '', [
         x7ZipInfo(filename='vmp0', file_size=0, compress_size=0, date_time=None, CRC=None, mode=None, encrypted=None, compress_type=None, block=None),
         x7ZipInfo(filename='vmp1', file_size=11264, compress_size=11264, date_time=None, CRC=None, mode=None, encrypted=None, compress_type=None, block=None),
         x7ZipInfo(filename='vmp2', file_size=512, compress_size=512, date_time=None, CRC=None, mode=None, encrypted=None, compress_type=None, block=None),
     ]),
-    ('bugzilla_4.7z', '', [
+    ('bugzilla_4.7z', '', '', [
         x7ZipInfo(filename='copying.txt', file_size=26948, compress_size=15971, date_time=(2001, 8, 29, 20, 19, 26), CRC=4090972253, mode='An', encrypted='-', compress_type='LZMA:16', block=0),
         x7ZipInfo(filename='History.txt', file_size=26317, compress_size=None, date_time=(2005, 12, 4, 13, 57, 48), CRC=223166815, mode='An', encrypted='-', compress_type='LZMA:16', block=0),
         x7ZipInfo(filename='License.txt', file_size=938, compress_size=None, date_time=(2005, 1, 10, 11, 31, 50), CRC=3341001762, mode='An', encrypted='-', compress_type='LZMA:16', block=0),
         x7ZipInfo(filename='readme.txt', file_size=3500, compress_size=None, date_time=(2005, 12, 4, 13, 57, 26), CRC=3932089770, mode='An', encrypted='-', compress_type='LZMA:16', block=0),
     ]),
-    ('bzip2_2.7z', '', [
+    ('bzip2_2.7z', '', '', [
         x7ZipInfo(filename='10000SalesRecords.csv', file_size=1247263, compress_size=272525, date_time=(2017, 7, 28, 13, 50, 45), CRC=2832084052, mode='A', encrypted='-', compress_type='BZip2', block=0),
     ]),
-    ('copy.7z', '', [
+    ('copy.7z', '', '', [
         x7ZipInfo(filename='test', file_size=0, compress_size=0, date_time=(2006, 3, 15, 21, 54, 41), CRC=None, mode='D_ drwx------', encrypted='-', compress_type=None, block=None),
         x7ZipInfo(filename='test/test2.txt', file_size=33, compress_size=33, date_time=(2006, 3, 15, 21, 43, 36), CRC=2293734094, mode='A_ -rw-r--r--', encrypted='-', compress_type='Copy', block=0),
         x7ZipInfo(filename='test1.txt', file_size=33, compress_size=33, date_time=(2006, 3, 15, 21, 43, 48), CRC=140667454, mode='A_ -rw-r--r--', encrypted='-', compress_type='Copy', block=1),
     ]),
-    ('copy_2.7z', '', [
+    ('copy_2.7z', '', '', [
         x7ZipInfo(filename='assemblies/content/0000/Empty.sbsasm', file_size=136, compress_size=136, date_time=(2020, 7, 9, 3, 58, 47), CRC=2680137582, mode='', encrypted='-', compress_type='Copy', block=0),
         x7ZipInfo(filename='assemblies/content/0000/Empty.xml', file_size=895, compress_size=895, date_time=(2020, 7, 9, 3, 58, 47), CRC=2361726829, mode='', encrypted='-', compress_type='Copy', block=1),
     ]),
-    ('copy_bcj_1.7z', '', [
+    ('copy_bcj_1.7z', '', '', [
         x7ZipInfo(filename='test_bcj2.bin', file_size=10000, compress_size=10000, date_time=(2020, 9, 29, 23, 54, 47), CRC=2770753338, mode='A_ -rw-rw-r--', encrypted='-', compress_type='Copy BCJ', block=0),
     ]),
-    ('crc_corrupted.7z', '', [
+    ('crc_corrupted.7z', '', 'Fatal error: ERROR: CRC Failed', [
         x7ZipInfo(filename='src', file_size=0, compress_size=0, date_time=(2020, 6, 3, 0, 18, 55), CRC=None, mode='D_ drwxr-xr-x', encrypted='-', compress_type=None, block=None),
         x7ZipInfo(filename='src/scripts', file_size=0, compress_size=0, date_time=(2019, 3, 14, 0, 10, 8), CRC=None, mode='D_ drwxr-xr-x', encrypted='-', compress_type=None, block=None),
         x7ZipInfo(filename='src/scripts/py7zr', file_size=111, compress_size=441, date_time=(2019, 3, 14, 0, 10, 8), CRC=3010113244, mode='A_ 0rwxr-xr-x', encrypted='-', compress_type='LZMA2:24', block=0),
         x7ZipInfo(filename='src/setup.cfg', file_size=58, compress_size=None, date_time=(2019, 3, 14, 0, 7, 13), CRC=3703541000, mode='A_ 0rw-r--r--', encrypted='-', compress_type='LZMA2:24', block=0),
         x7ZipInfo(filename='src/setup.py', file_size=559, compress_size=None, date_time=(2019, 3, 14, 0, 9, 1), CRC=2164028095, mode='A_ 0rw-r--r--', encrypted='-', compress_type='LZMA2:24', block=0),
     ]),
-    ('deflate.7z', '', [
+    ('deflate.7z', '', '', [
         x7ZipInfo(filename='test1.txt', file_size=33, compress_size=49, date_time=(2006, 3, 15, 21, 43, 48), CRC=140667454, mode='A_ -rw-r--r--', encrypted='-', compress_type='Deflate', block=0),
         x7ZipInfo(filename='test/test2.txt', file_size=33, compress_size=None, date_time=(2006, 3, 15, 21, 43, 36), CRC=2293734094, mode='A_ -rw-r--r--', encrypted='-', compress_type='Deflate', block=0),
         x7ZipInfo(filename='test', file_size=0, compress_size=0, date_time=(2010, 4, 24, 23, 45, 54), CRC=None, mode='D_ drwx------', encrypted='-', compress_type=None, block=None),
     ]),
-    ('deflate64.7z', '', [
+    ('deflate64.7z', '', '', [
         x7ZipInfo(filename='test1.txt', file_size=33, compress_size=49, date_time=(2006, 3, 15, 21, 43, 48), CRC=140667454, mode='A_ -rw-r--r--', encrypted='-', compress_type='Deflate64', block=0),
         x7ZipInfo(filename='test/test2.txt', file_size=33, compress_size=None, date_time=(2006, 3, 15, 21, 43, 36), CRC=2293734094, mode='A_ -rw-r--r--', encrypted='-', compress_type='Deflate64', block=0),
         x7ZipInfo(filename='test', file_size=0, compress_size=0, date_time=(2010, 4, 24, 23, 45, 54), CRC=None, mode='D_ drwx------', encrypted='-', compress_type=None, block=None),
     ]),
-    ('empty.7z', '', [
+    ('empty.7z', '', '', [
     ]),
-    ('encrypted_1.7z', 'secret', [
+    ('encrypted_1.7z', 'secret', '', [
         x7ZipInfo(filename='test1.txt', file_size=33, compress_size=48, date_time=(2006, 3, 15, 21, 43, 48), CRC=140667454, mode='A_ -rw-r--r--', encrypted='+', compress_type='LZMA:16 7zAES:19', block=0),
         x7ZipInfo(filename='test/test2.txt', file_size=33, compress_size=None, date_time=(2006, 3, 15, 21, 43, 36), CRC=2293734094, mode='A_ -rw-r--r--', encrypted='+', compress_type='LZMA:16 7zAES:19', block=0),
         x7ZipInfo(filename='test', file_size=0, compress_size=0, date_time=(2010, 4, 24, 23, 25, 39), CRC=None, mode='D_ drwx------', encrypted='-', compress_type=None, block=None),
     ]),
-    ('encrypted_2.7z', 'secret', [
+    ('encrypted_2.7z', 'secret', '', [
         x7ZipInfo(filename='mingw64', file_size=0, compress_size=0, date_time=(2017, 1, 23, 6, 2, 46), CRC=None, mode='D_ drwxr-xr-x', encrypted='-', compress_type=None, block=None),
         x7ZipInfo(filename='mingw64/bin', file_size=0, compress_size=0, date_time=(2020, 6, 7, 2, 45, 18), CRC=None, mode='D_ drwxr-xr-x', encrypted='-', compress_type=None, block=None),
         x7ZipInfo(filename='mingw64/include', file_size=0, compress_size=0, date_time=(2020, 6, 7, 2, 45, 18), CRC=None, mode='D_ drwxr-xr-x', encrypted='-', compress_type=None, block=None),
@@ -80,64 +84,64 @@ ARCHIVES = [
         x7ZipInfo(filename='mingw64/share/doc/szip/RELEASE.txt', file_size=513, compress_size=None, date_time=(2010, 7, 14, 13, 43, 15), CRC=2315733265, mode='A_ -rw-r--r--', encrypted='+', compress_type='LZMA2:192k 7zAES:19', block=0),
         x7ZipInfo(filename='mingw64/bin/libszip-0.dll', file_size=66352, compress_size=25968, date_time=(2017, 1, 23, 6, 2, 47), CRC=3176356340, mode='A_ -rwxr-xr-x', encrypted='+', compress_type='BCJ LZMA2:192k 7zAES:19', block=1),
     ]),
-    ('encrypted_3.7z', 'secret', [
+    ('encrypted_3.7z', 'secret', '', [
         x7ZipInfo(filename='scripts', file_size=0, compress_size=0, date_time=(2019, 3, 14, 0, 10, 8), CRC=None, mode='D_ drwxr-xr-x', encrypted='-', compress_type=None, block=None),
         x7ZipInfo(filename='scripts/py7zr', file_size=111, compress_size=448, date_time=(2019, 3, 14, 0, 10, 8), CRC=3010113243, mode='A_ -rwxr-xr-x', encrypted='+', compress_type='LZMA2:12 7zAES:19', block=0),
         x7ZipInfo(filename='setup.cfg', file_size=58, compress_size=None, date_time=(2019, 3, 14, 0, 7, 13), CRC=3703540999, mode='A_ -rw-r--r--', encrypted='+', compress_type='LZMA2:12 7zAES:19', block=0),
         x7ZipInfo(filename='setup.py', file_size=559, compress_size=None, date_time=(2019, 3, 14, 0, 9, 1), CRC=2164028094, mode='A_ -rw-r--r--', encrypted='+', compress_type='LZMA2:12 7zAES:19', block=0),
     ]),
-    ('filename_encryption.7z', 'hello', [
+    ('filename_encryption.7z', 'hello', '', [
         x7ZipInfo(filename='New Text Document.TXT', file_size=0, compress_size=0, date_time=(2020, 6, 2, 22, 7, 57), CRC=None, mode='A', encrypted='-', compress_type=None, block=None),
     ]),
-    ('github_14.7z', '', [
+    ('github_14.7z', '', '', [
         x7ZipInfo(filename='github_14', file_size=24, compress_size=30, date_time=(2014, 3, 12, 23, 2, 31), CRC=3515136674, mode='', encrypted='-', compress_type='LZMA:24', block=0),
     ]),
-    ('github_14_multi.7z', '', [
+    ('github_14_multi.7z', '', '', [
         x7ZipInfo(filename='github_14_multi', file_size=28, compress_size=34, date_time=(2014, 3, 12, 23, 9, 11), CRC=2017676314, mode='', encrypted='-', compress_type='LZMA:24', block=0),
         x7ZipInfo(filename='github_14_multi', file_size=28, compress_size=34, date_time=(2014, 3, 12, 23, 9, 15), CRC=1071855306, mode='', encrypted='-', compress_type='LZMA:24', block=1),
     ]),
-    ('longpath.7z', '', [
+    ('longpath.7z', '', 'ERROR: Can not open output file : File name too long', [
         x7ZipInfo(filename='Users\\AnthonyRabon\\Downloads\\CJ_WS_Spectre-v040920R1_2020-04-09_23-40-44 (1)\\CJ_WS_Spectre-v040920R1_2020-04-09_23-40-44\\Suspicious Files\\Program Files\\WindowsApps\\AD2F1837.HPPrinterControl_110.1.671.0_x64__v10z8vjag6ke6\\HP.Framework.Extensions.ScanCapture\\Assets\\Arrow.png\\Arrow.png\\Arrow.png', file_size=332, compress_size=333, date_time=(2020, 4, 17, 20, 37, 57), CRC=732802182, mode='A', encrypted='-', compress_type='LZMA2:12', block=0),
         x7ZipInfo(filename='Users/AnthonyRabon/Downloads/CJ_WS_Spectre-v040920R1_2020-04-09_23-40-44 (1)/CJ_WS_Spectre-v040920R1_2020-04-09_23-40-44/Arrow.png', file_size=332, compress_size=333, date_time=(2020, 4, 17, 20, 37, 57), CRC=732802182, mode='A', encrypted='-', compress_type='LZMA2:12', block=1),
     ]),
-    ('lz4.7z', '', [
+    ('lz4.7z', '', 'ERROR: Unsupported Method', [
         x7ZipInfo(filename='scripts', file_size=0, compress_size=0, date_time=(2019, 3, 14, 0, 10, 8), CRC=None, mode='D', encrypted='-', compress_type=None, block=None),
         x7ZipInfo(filename='scripts/py7zr', file_size=111, compress_size=584, date_time=(2019, 3, 14, 0, 10, 8), CRC=3010113243, mode='A', encrypted='-', compress_type='04F71104', block=0),
         x7ZipInfo(filename='setup.cfg', file_size=58, compress_size=None, date_time=(2019, 3, 14, 0, 7, 13), CRC=3703540999, mode='A', encrypted='-', compress_type='04F71104', block=0),
         x7ZipInfo(filename='setup.py', file_size=559, compress_size=None, date_time=(2019, 3, 14, 0, 9, 1), CRC=2164028094, mode='A', encrypted='-', compress_type='04F71104', block=0),
     ]),
-    ('lzma2_1.7z', '', [
+    ('lzma2_1.7z', '', '', [
         x7ZipInfo(filename='scripts', file_size=0, compress_size=0, date_time=(2019, 3, 14, 0, 10, 8), CRC=None, mode='D_ drwxr-xr-x', encrypted='-', compress_type=None, block=None),
         x7ZipInfo(filename='scripts/py7zr', file_size=111, compress_size=441, date_time=(2019, 3, 14, 0, 10, 8), CRC=3010113243, mode='A_ -rwxr-xr-x', encrypted='-', compress_type='LZMA2:12', block=0),
         x7ZipInfo(filename='setup.cfg', file_size=58, compress_size=None, date_time=(2019, 3, 14, 0, 7, 13), CRC=3703540999, mode='A_ -rw-r--r--', encrypted='-', compress_type='LZMA2:12', block=0),
         x7ZipInfo(filename='setup.py', file_size=559, compress_size=None, date_time=(2019, 3, 14, 0, 9, 1), CRC=2164028094, mode='A_ -rw-r--r--', encrypted='-', compress_type='LZMA2:12', block=0),
     ]),
-    ('lzma2_bcj_arm.7z', '', [
+    ('lzma2_bcj_arm.7z', '', '', [
         x7ZipInfo(filename='test', file_size=0, compress_size=0, date_time=(2010, 4, 24, 23, 25, 39), CRC=None, mode='D_ drwx------', encrypted='-', compress_type=None, block=None),
         x7ZipInfo(filename='test/test2.txt', file_size=33, compress_size=55, date_time=(2006, 3, 15, 21, 43, 36), CRC=2293734094, mode='A_ -rw-r--r--', encrypted='-', compress_type='ARM LZMA2:12', block=0),
         x7ZipInfo(filename='test1.txt', file_size=33, compress_size=None, date_time=(2006, 3, 15, 21, 43, 48), CRC=140667454, mode='A_ -rw-r--r--', encrypted='-', compress_type='ARM LZMA2:12', block=0),
     ]),
-    ('lzma2_bcj_armt.7z', '', [
+    ('lzma2_bcj_armt.7z', '', '', [
         x7ZipInfo(filename='test', file_size=0, compress_size=0, date_time=(2010, 4, 24, 23, 25, 39), CRC=None, mode='D_ drwx------', encrypted='-', compress_type=None, block=None),
         x7ZipInfo(filename='test/test2.txt', file_size=33, compress_size=55, date_time=(2006, 3, 15, 21, 43, 36), CRC=2293734094, mode='A_ -rw-r--r--', encrypted='-', compress_type='ARMT LZMA2:12', block=0),
         x7ZipInfo(filename='test1.txt', file_size=33, compress_size=None, date_time=(2006, 3, 15, 21, 43, 48), CRC=140667454, mode='A_ -rw-r--r--', encrypted='-', compress_type='ARMT LZMA2:12', block=0),
     ]),
-    ('lzma2_bcj_ia64.7z', '', [
+    ('lzma2_bcj_ia64.7z', '', '', [
         x7ZipInfo(filename='test', file_size=0, compress_size=0, date_time=(2010, 4, 24, 23, 25, 39), CRC=None, mode='D_ drwx------', encrypted='-', compress_type=None, block=None),
         x7ZipInfo(filename='test/test2.txt', file_size=33, compress_size=55, date_time=(2006, 3, 15, 21, 43, 36), CRC=2293734094, mode='A_ -rw-r--r--', encrypted='-', compress_type='IA64 LZMA2:12', block=0),
         x7ZipInfo(filename='test1.txt', file_size=33, compress_size=None, date_time=(2006, 3, 15, 21, 43, 48), CRC=140667454, mode='A_ -rw-r--r--', encrypted='-', compress_type='IA64 LZMA2:12', block=0),
     ]),
-    ('lzma2_bcj_ppc.7z', '', [
+    ('lzma2_bcj_ppc.7z', '', '', [
         x7ZipInfo(filename='test', file_size=0, compress_size=0, date_time=(2010, 4, 24, 23, 25, 39), CRC=None, mode='D_ drwx------', encrypted='-', compress_type=None, block=None),
         x7ZipInfo(filename='test/test2.txt', file_size=33, compress_size=55, date_time=(2006, 3, 15, 21, 43, 36), CRC=2293734094, mode='A_ -rw-r--r--', encrypted='-', compress_type='PPC LZMA2:12', block=0),
         x7ZipInfo(filename='test1.txt', file_size=33, compress_size=None, date_time=(2006, 3, 15, 21, 43, 48), CRC=140667454, mode='A_ -rw-r--r--', encrypted='-', compress_type='PPC LZMA2:12', block=0),
     ]),
-    ('lzma2_bcj_sparc.7z', '', [
+    ('lzma2_bcj_sparc.7z', '', '', [
         x7ZipInfo(filename='test', file_size=0, compress_size=0, date_time=(2010, 4, 24, 23, 25, 39), CRC=None, mode='D_ drwx------', encrypted='-', compress_type=None, block=None),
         x7ZipInfo(filename='test/test2.txt', file_size=33, compress_size=55, date_time=(2006, 3, 15, 21, 43, 36), CRC=2293734094, mode='A_ -rw-r--r--', encrypted='-', compress_type='SPARC LZMA2:12', block=0),
         x7ZipInfo(filename='test1.txt', file_size=33, compress_size=None, date_time=(2006, 3, 15, 21, 43, 48), CRC=140667454, mode='A_ -rw-r--r--', encrypted='-', compress_type='SPARC LZMA2:12', block=0),
     ]),
-    ('lzma2bcj.7z', '', [
+    ('lzma2bcj.7z', '', '', [
         x7ZipInfo(filename='mingw64', file_size=0, compress_size=0, date_time=(2017, 1, 23, 6, 2, 46), CRC=None, mode='D_ drwxr-xr-x', encrypted='-', compress_type=None, block=None),
         x7ZipInfo(filename='mingw64/bin', file_size=0, compress_size=0, date_time=(2020, 6, 7, 2, 45, 18), CRC=None, mode='D_ drwxr-xr-x', encrypted='-', compress_type=None, block=None),
         x7ZipInfo(filename='mingw64/include', file_size=0, compress_size=0, date_time=(2020, 6, 7, 2, 45, 18), CRC=None, mode='D_ drwxr-xr-x', encrypted='-', compress_type=None, block=None),
@@ -158,7 +162,7 @@ ARCHIVES = [
         x7ZipInfo(filename='mingw64/share/doc/szip/RELEASE.txt', file_size=513, compress_size=None, date_time=(2010, 7, 14, 13, 43, 15), CRC=2315733265, mode='A_ -rw-r--r--', encrypted='-', compress_type='LZMA2:192k', block=0),
         x7ZipInfo(filename='mingw64/bin/libszip-0.dll', file_size=66352, compress_size=24924, date_time=(2017, 1, 23, 6, 2, 47), CRC=3176356340, mode='A_ -rwxr-xr-x', encrypted='-', compress_type='BCJ LZMA2:192k', block=1),
     ]),
-    ('lzma2bcj2.7z', '', [
+    ('lzma2bcj2.7z', '', '', [
         x7ZipInfo(filename='mingw64', file_size=0, compress_size=0, date_time=(2017, 1, 23, 6, 2, 46), CRC=None, mode='D_ drwxr-xr-x', encrypted='-', compress_type=None, block=None),
         x7ZipInfo(filename='mingw64/bin', file_size=0, compress_size=0, date_time=(2020, 6, 7, 2, 45, 18), CRC=None, mode='D_ drwxr-xr-x', encrypted='-', compress_type=None, block=None),
         x7ZipInfo(filename='mingw64/include', file_size=0, compress_size=0, date_time=(2020, 6, 7, 2, 45, 18), CRC=None, mode='D_ drwxr-xr-x', encrypted='-', compress_type=None, block=None),
@@ -179,32 +183,32 @@ ARCHIVES = [
         x7ZipInfo(filename='mingw64/share/doc/szip/RELEASE.txt', file_size=513, compress_size=None, date_time=(2010, 7, 14, 13, 43, 15), CRC=2315733265, mode='A_ -rw-r--r--', encrypted='-', compress_type='LZMA2:192k', block=0),
         x7ZipInfo(filename='mingw64/bin/libszip-0.dll', file_size=66352, compress_size=23793, date_time=(2017, 1, 23, 6, 2, 47), CRC=3176356340, mode='A_ -rwxr-xr-x', encrypted='-', compress_type='BCJ2 LZMA2:192k LZMA:192k:lc0:lp2 LZMA:192k:lc0:lp2', block=1),
     ]),
-    ('lzma2delta_1.7z', '', [
+    ('lzma2delta_1.7z', '', '', [
         x7ZipInfo(filename='src', file_size=0, compress_size=0, date_time=(2020, 4, 12, 8, 3, 28), CRC=None, mode='D_ drwxr-xr-x', encrypted='-', compress_type=None, block=None),
         x7ZipInfo(filename='src/bra.txt', file_size=11, compress_size=15, date_time=(2020, 4, 12, 8, 3, 28), CRC=295790896, mode='A_ -rw-r--r--', encrypted='-', compress_type='Delta:1 LZMA2:12', block=0),
     ]),
-    ('lzma_1.7z', '', [
+    ('lzma_1.7z', '', '', [
         x7ZipInfo(filename='test1.txt', file_size=33, compress_size=37, date_time=(2020, 4, 12, 8, 3, 28), CRC=140667454, mode='A_ -rw-r--r--', encrypted='-', compress_type='LZMA:12', block=0),
     ]),
-    ('lzma_bcj2_1.7z', '', [
+    ('lzma_bcj2_1.7z', '', '', [
         x7ZipInfo(filename='test1.txt', file_size=33, compress_size=52, date_time=(2019, 11, 30, 0, 29, 19), CRC=140667454, mode='A_ -rw-r--r--', encrypted='-', compress_type='BCJ2 LZMA:12 LZMA:12:lc0:lp2 LZMA:12:lc0:lp2', block=0),
     ]),
-    ('lzma_bcj_arm.7z', '', [
+    ('lzma_bcj_arm.7z', '', '', [
         x7ZipInfo(filename='xclock', file_size=48507, compress_size=20336, date_time=(2016, 5, 22, 15, 24, 13), CRC=1633252794, mode='RA_ -r-xr-xr-x', encrypted='-', compress_type='ARM LZMA:48k', block=0),
     ]),
-    ('lzma_bcj_armt.7z', '', [
+    ('lzma_bcj_armt.7z', '', '', [
         x7ZipInfo(filename='xclock', file_size=58224, compress_size=28819, date_time=(2020, 2, 14, 0, 6, 28), CRC=771792826, mode='RA_ -r-xr-xr-x', encrypted='-', compress_type='ARMT LZMA:16', block=0),
     ]),
-    ('lzma_bcj_ppc.7z', '', [
+    ('lzma_bcj_ppc.7z', '', '', [
         x7ZipInfo(filename='xclock', file_size=45254, compress_size=20026, date_time=(2016, 5, 22, 16, 20, 49), CRC=3219272118, mode='RA_ -r-xr-xr-x', encrypted='-', compress_type='PPC LZMA:48k', block=0),
     ]),
-    ('lzma_bcj_sparc.7z', '', [
+    ('lzma_bcj_sparc.7z', '', '', [
         x7ZipInfo(filename='xclock', file_size=42545, compress_size=18656, date_time=(2020, 7, 18, 10, 9, 21), CRC=3048035462, mode='RA_ -r-xr-xr-x', encrypted='-', compress_type='SPARC LZMA:48k', block=0),
     ]),
-    ('lzma_bcj_x86.7z', '', [
+    ('lzma_bcj_x86.7z', '', '', [
         x7ZipInfo(filename='c++obf7.exe', file_size=12800, compress_size=11327, date_time=(2019, 8, 2, 12, 17, 32), CRC=196103774, mode='A', encrypted='-', compress_type='BCJ LZMA:16', block=0),
     ]),
-    ('mblock_1.7z', '', [
+    ('mblock_1.7z', '', '', [
         x7ZipInfo(filename='C', file_size=0, compress_size=0, date_time=(2019, 6, 2, 23, 50, 27), CRC=None, mode='D_ drwx------', encrypted='-', compress_type=None, block=None),
         x7ZipInfo(filename='C/Util', file_size=0, compress_size=0, date_time=(2019, 6, 2, 23, 50, 27), CRC=None, mode='D_ drwx------', encrypted='-', compress_type=None, block=None),
         x7ZipInfo(filename='C/Util/7z', file_size=0, compress_size=0, date_time=(2019, 6, 2, 23, 50, 27), CRC=None, mode='D_ drwx------', encrypted='-', compress_type=None, block=None),
@@ -338,24 +342,24 @@ ARCHIVES = [
         x7ZipInfo(filename='bin/lzma.exe', file_size=97280, compress_size=None, date_time=(2016, 10, 4, 15, 12, 30), CRC=3637418033, mode='A_ -rw-r--r--', encrypted='-', compress_type='BCJ LZMA2:1536k', block=2),
         x7ZipInfo(filename='bin/x64/7zr.exe', file_size=742400, compress_size=None, date_time=(2016, 10, 4, 14, 58, 29), CRC=2893471509, mode='A_ -rw-r--r--', encrypted='-', compress_type='BCJ LZMA2:1536k', block=2),
     ]),
-    ('p7zip-zstd.7z', '', [
+    ('p7zip-zstd.7z', '', 'ERROR: Unsupported Method', [
         x7ZipInfo(filename='bin', file_size=0, compress_size=0, date_time=(2006, 2, 6, 20, 1, 1), CRC=None, mode='D_ drwxr-xr-x', encrypted='-', compress_type=None, block=None),
         x7ZipInfo(filename='doc', file_size=0, compress_size=0, date_time=(2006, 2, 6, 20, 1, 8), CRC=None, mode='D_ drwxr-xr-x', encrypted='-', compress_type=None, block=None),
         x7ZipInfo(filename='doc/copying.txt', file_size=26948, compress_size=10492, date_time=(2001, 8, 30, 0, 19, 26), CRC=4090972253, mode='A_ -rwxr-xr-x', encrypted='-', compress_type='04F71101', block=0),
         x7ZipInfo(filename='readme.txt', file_size=1601, compress_size=None, date_time=(2006, 2, 5, 11, 57, 18), CRC=3113337885, mode='A_ -rwxr-xr-x', encrypted='-', compress_type='04F71101', block=0),
         x7ZipInfo(filename='bin/7za.exe', file_size=462336, compress_size=212033, date_time=(2006, 2, 5, 12, 1, 18), CRC=2934338533, mode='A_ -rwxr-xr-x', encrypted='-', compress_type='BCJ 04F71101', block=1),
     ]),
-    ('ppmd.7z', '', [
+    ('ppmd.7z', '', '', [
         x7ZipInfo(filename='test', file_size=0, compress_size=0, date_time=(2010, 4, 24, 23, 25, 39), CRC=None, mode='D_ drwx------', encrypted='-', compress_type=None, block=None),
         x7ZipInfo(filename='test/test2.txt', file_size=33, compress_size=41, date_time=(2006, 3, 15, 21, 43, 36), CRC=2293734094, mode='A_ -rw-r--r--', encrypted='-', compress_type='PPMD:o6:mem16', block=0),
         x7ZipInfo(filename='test1.txt', file_size=33, compress_size=None, date_time=(2006, 3, 15, 21, 43, 48), CRC=140667454, mode='A_ -rw-r--r--', encrypted='-', compress_type='PPMD:o6:mem16', block=0),
     ]),
-    ('solid.7z', '', [
+    ('solid.7z', '', '', [
         x7ZipInfo(filename='test', file_size=0, compress_size=0, date_time=(2006, 3, 15, 21, 54, 41), CRC=None, mode='D_ drwx------', encrypted='-', compress_type=None, block=None),
         x7ZipInfo(filename='test/test2.txt', file_size=33, compress_size=55, date_time=(2006, 3, 15, 21, 43, 36), CRC=2293734094, mode='A_ -rw-r--r--', encrypted='-', compress_type='LZMA2:12', block=0),
         x7ZipInfo(filename='test1.txt', file_size=33, compress_size=None, date_time=(2006, 3, 15, 21, 43, 48), CRC=140667454, mode='A_ -rw-r--r--', encrypted='-', compress_type='LZMA2:12', block=0),
     ]),
-    ('symlink.7z', '', [
+    ('symlink.7z', '', '', [
         x7ZipInfo(filename='lib', file_size=0, compress_size=0, date_time=(2019, 3, 28, 0, 7, 51), CRC=None, mode='D_ drwxr-xr-x', encrypted='-', compress_type=None, block=None),
         x7ZipInfo(filename='lib/libabc.so', file_size=11, compress_size=1532, date_time=(2019, 3, 28, 0, 7, 21), CRC=4262439050, mode='A_ lrwxrwxrwx', encrypted='-', compress_type='LZMA2:13', block=0),
         x7ZipInfo(filename='lib/libabc.so.1', file_size=13, compress_size=None, date_time=(2019, 3, 28, 0, 7, 21), CRC=2607345479, mode='A_ lrwxrwxrwx', encrypted='-', compress_type='LZMA2:13', block=0),
@@ -363,17 +367,17 @@ ARCHIVES = [
         x7ZipInfo(filename='lib/libabc.so.1.2.3', file_size=6536, compress_size=None, date_time=(2019, 3, 27, 22, 49, 29), CRC=437637236, mode='A_ -rw-r--r--', encrypted='-', compress_type='LZMA2:13', block=0),
         x7ZipInfo(filename='lib64', file_size=3, compress_size=None, date_time=(2019, 3, 28, 0, 7, 57), CRC=2836347852, mode='A_ lrwxrwxrwx', encrypted='-', compress_type='LZMA2:13', block=0),
     ]),
-    ('test_1.7z', '', [
+    ('test_1.7z', '', '', [
         x7ZipInfo(filename='scripts', file_size=0, compress_size=0, date_time=(2019, 3, 14, 0, 10, 8), CRC=None, mode='D_ drwxr-xr-x', encrypted='-', compress_type=None, block=None),
         x7ZipInfo(filename='scripts/py7zr', file_size=111, compress_size=441, date_time=(2019, 3, 14, 0, 10, 8), CRC=3010113243, mode='A_ -rwxr-xr-x', encrypted='-', compress_type='LZMA2:12', block=0),
         x7ZipInfo(filename='setup.cfg', file_size=58, compress_size=None, date_time=(2019, 3, 14, 0, 7, 13), CRC=3703540999, mode='A_ -rw-r--r--', encrypted='-', compress_type='LZMA2:12', block=0),
         x7ZipInfo(filename='setup.py', file_size=559, compress_size=None, date_time=(2019, 3, 14, 0, 9, 1), CRC=2164028094, mode='A_ -rw-r--r--', encrypted='-', compress_type='LZMA2:12', block=0),
     ]),
-    ('test_2.7z', '', [
+    ('test_2.7z', '', '', [
         x7ZipInfo(filename='qt.qt5.597.gcc_64', file_size=0, compress_size=0, date_time=(2018, 10, 18, 14, 53, 53), CRC=None, mode='D_ drwxrwxr-x', encrypted='-', compress_type=None, block=None),
         x7ZipInfo(filename='qt.qt5.597.gcc_64/installscript.qs', file_size=4326, compress_size=1460, date_time=(2018, 10, 18, 14, 53, 53), CRC=1855634885, mode='A_ -rw-rw-r--', encrypted='-', compress_type='LZMA2:6k', block=0),
     ]),
-    ('test_3.7z', '', [
+    ('test_3.7z', '', '', [
         x7ZipInfo(filename='5.9.7', file_size=0, compress_size=0, date_time=(2018, 10, 18, 14, 52, 42), CRC=None, mode='D_ drwxrwxr-x', encrypted='-', compress_type=None, block=None),
         x7ZipInfo(filename='5.9.7/gcc_64', file_size=0, compress_size=0, date_time=(2018, 10, 18, 14, 52, 43), CRC=None, mode='D_ drwxrwxr-x', encrypted='-', compress_type=None, block=None),
         x7ZipInfo(filename='5.9.7/gcc_64/include', file_size=0, compress_size=0, date_time=(2018, 10, 18, 14, 52, 42), CRC=None, mode='D_ drwxrwxr-x', encrypted='-', compress_type=None, block=None),
@@ -403,12 +407,12 @@ ARCHIVES = [
         x7ZipInfo(filename='5.9.7/gcc_64/mkspecs/modules/qt_lib_x11extras_private.pri', file_size=526, compress_size=None, date_time=(2018, 10, 16, 10, 26, 24), CRC=675001080, mode='A_ -rw-rw-r--', encrypted='-', compress_type='LZMA2:15', block=0),
         x7ZipInfo(filename='5.9.7/gcc_64/lib/libQt5X11Extras.prl', file_size=1064, compress_size=None, date_time=(2018, 10, 18, 10, 28, 16), CRC=2164250057, mode='A_ -rw-rw-r--', encrypted='-', compress_type='LZMA2:15', block=0),
     ]),
-    ('test_5.7z', '', [
+    ('test_5.7z', '', '', [
         x7ZipInfo(filename='test', file_size=0, compress_size=0, date_time=(2006, 3, 15, 21, 54, 41), CRC=None, mode='D', encrypted='-', compress_type=None, block=None),
         x7ZipInfo(filename='test1.txt', file_size=33, compress_size=48, date_time=(2006, 3, 15, 21, 43, 48), CRC=140667454, mode='A', encrypted='-', compress_type='LZMA:25', block=0),
         x7ZipInfo(filename='test/test2.txt', file_size=33, compress_size=None, date_time=(2006, 3, 15, 21, 43, 36), CRC=2293734094, mode='A', encrypted='-', compress_type='LZMA:25', block=0),
     ]),
-    ('test_6.7z', '', [
+    ('test_6.7z', '', '', [
         x7ZipInfo(filename='5.9.7', file_size=0, compress_size=0, date_time=(2018, 10, 18, 14, 52, 42), CRC=None, mode='D_ drwxrwxr-x', encrypted='-', compress_type=None, block=None),
         x7ZipInfo(filename='5.9.7/gcc_64', file_size=0, compress_size=0, date_time=(2018, 10, 18, 14, 52, 43), CRC=None, mode='D_ drwxrwxr-x', encrypted='-', compress_type=None, block=None),
         x7ZipInfo(filename='5.9.7/gcc_64/include', file_size=0, compress_size=0, date_time=(2018, 10, 18, 14, 52, 42), CRC=None, mode='D_ drwxrwxr-x', encrypted='-', compress_type=None, block=None),
@@ -438,7 +442,7 @@ ARCHIVES = [
         x7ZipInfo(filename='5.9.7/gcc_64/mkspecs/modules/qt_lib_x11extras.pri', file_size=555, compress_size=None, date_time=(2018, 10, 16, 10, 26, 24), CRC=2591675318, mode='A_ 0rw-rw-r--', encrypted='-', compress_type='LZMA2:24', block=0),
         x7ZipInfo(filename='5.9.7/gcc_64/mkspecs/modules/qt_lib_x11extras_private.pri', file_size=526, compress_size=None, date_time=(2018, 10, 16, 10, 26, 24), CRC=675001080, mode='A_ 0rw-rw-r--', encrypted='-', compress_type='LZMA2:24', block=0),
     ]),
-    ('test_folder.7z', '', [
+    ('test_folder.7z', '', '', [
         x7ZipInfo(filename='test1', file_size=0, compress_size=0, date_time=(2019, 10, 11, 10, 8, 44), CRC=None, mode='D', encrypted='-', compress_type=None, block=None),
         x7ZipInfo(filename='test1/test2', file_size=0, compress_size=0, date_time=(2019, 10, 11, 14, 49, 34), CRC=None, mode='D', encrypted='-', compress_type=None, block=None),
         x7ZipInfo(filename='test1/test2/test1', file_size=0, compress_size=0, date_time=(2019, 10, 11, 14, 49, 34), CRC=None, mode='D', encrypted='-', compress_type=None, block=None),
@@ -451,31 +455,44 @@ ARCHIVES = [
         x7ZipInfo(filename='test2/testfile2.txt', file_size=0, compress_size=0, date_time=(2019, 9, 13, 13, 58, 30), CRC=None, mode='A', encrypted='-', compress_type=None, block=None),
         x7ZipInfo(filename='testfile.txt', file_size=0, compress_size=0, date_time=(2019, 9, 13, 13, 58, 30), CRC=None, mode='A', encrypted='-', compress_type=None, block=None),
     ]),
-    ('test_lzma2bcj2.7z', '', [
+    ('test_lzma2bcj2.7z', '', '', [
         x7ZipInfo(filename='test', file_size=0, compress_size=0, date_time=(2006, 3, 15, 21, 54, 41), CRC=None, mode='D_ drwx------', encrypted='-', compress_type=None, block=None),
         x7ZipInfo(filename='test/test2.txt', file_size=33, compress_size=60, date_time=(2006, 3, 15, 21, 43, 36), CRC=2293734094, mode='A_ -rw-r--r--', encrypted='-', compress_type='BCJ2 LZMA2:12', block=0),
         x7ZipInfo(filename='test1.txt', file_size=33, compress_size=None, date_time=(2006, 3, 15, 21, 43, 48), CRC=140667454, mode='A_ -rw-r--r--', encrypted='-', compress_type='BCJ2 LZMA2:12', block=0),
     ]),
-    ('umlaut-non_solid.7z', '', [
+    ('umlaut-non_solid.7z', '', '', [
         x7ZipInfo(filename='täst.txt', file_size=51, compress_size=51, date_time=(2006, 3, 15, 22, 42, 17), CRC=2149857894, mode='A', encrypted='-', compress_type='LZMA:25', block=0),
     ]),
-    ('umlaut-solid.7z', '', [
+    ('umlaut-solid.7z', '', '', [
         x7ZipInfo(filename='täst.txt', file_size=51, compress_size=51, date_time=(2006, 3, 15, 22, 42, 17), CRC=2149857894, mode='A', encrypted='-', compress_type='LZMA:25', block=0),
     ]),
-    ('x86.bin', '', [
+    ('x86.bin', '', '', [
         x7ZipInfo(filename='vmp0', file_size=0, compress_size=0, date_time=None, CRC=None, mode=None, encrypted=None, compress_type=None, block=None),
         x7ZipInfo(filename='vmp1', file_size=11264, compress_size=11264, date_time=None, CRC=None, mode=None, encrypted=None, compress_type=None, block=None),
         x7ZipInfo(filename='vmp2', file_size=512, compress_size=512, date_time=None, CRC=None, mode=None, encrypted=None, compress_type=None, block=None),
     ]),
-    ('zerosize.7z', '', [
+    ('zerosize.7z', '', '', [
         x7ZipInfo(filename='one', file_size=0, compress_size=0, date_time=(2019, 5, 27, 22, 46, 35), CRC=None, mode='D_ drwxr-xr-x', encrypted='-', compress_type=None, block=None),
         x7ZipInfo(filename='one/zero', file_size=0, compress_size=0, date_time=(2019, 5, 27, 22, 46, 18), CRC=None, mode='A_ -rw-r--r--', encrypted='-', compress_type=None, block=None),
         x7ZipInfo(filename='one/one', file_size=2, compress_size=6, date_time=(2019, 5, 27, 22, 46, 35), CRC=1733426259, mode='A_ -rw-r--r--', encrypted='-', compress_type='LZMA2:12', block=0),
     ]),
-    ('zstd.7z', '', [
+    ('zstd.7z', '', 'ERROR: Unsupported Method', [
         x7ZipInfo(filename='scripts', file_size=0, compress_size=0, date_time=(2019, 3, 14, 0, 10, 8), CRC=None, mode='D', encrypted='-', compress_type=None, block=None),
         x7ZipInfo(filename='scripts/py7zr', file_size=111, compress_size=436, date_time=(2019, 3, 14, 0, 10, 8), CRC=3010113243, mode='A', encrypted='-', compress_type='04F71101', block=0),
         x7ZipInfo(filename='setup.cfg', file_size=58, compress_size=None, date_time=(2019, 3, 14, 0, 7, 13), CRC=3703540999, mode='A', encrypted='-', compress_type='04F71101', block=0),
         x7ZipInfo(filename='setup.py', file_size=559, compress_size=None, date_time=(2019, 3, 14, 0, 9, 1), CRC=2164028094, mode='A', encrypted='-', compress_type='04F71101', block=0),
     ]),
+]
+
+datetime_attributes = ('year', 'month', 'day', 'hour', 'minute', 'second')
+
+# The time zone of date_time is local.
+ARCHIVES = [
+    (_[0], _[1], _[2], [
+        dataclasses.replace(
+            i, date_time=attrgetter(*datetime_attributes)(
+                datetime(*list(i.date_time), tzinfo=timezone.utc).astimezone(tz=None)
+            ) if i.date_time else None
+        ) for i in _[3]
+    ]) for _ in _ARCHIVES
 ]

@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 # Copyright 2021 UuuNyaa <UuuNyaa@gmail.com>
 # This file is part of x7zipfile.
+
 import argparse
 import sys
 
-from .x7zipfile import x7ZipFile
+from x7zipfile import x7ZipFile
 
 
 def main():
@@ -15,6 +16,7 @@ def main():
     parser_list = subparsers.add_parser('l', help='List contents of archive')
     parser_list.add_argument('archive_name', type=argparse.FileType('rb'))
     parser_list.add_argument('file_names', nargs='*', help='file name list to list')
+    parser_list.add_argument('-p', '--password', help='set Password')
 
     parser_extract = subparsers.add_parser('x', help='eXtract files with full paths')
     parser_extract.add_argument('archive_name', type=argparse.FileType('rb'))
@@ -28,8 +30,7 @@ def main():
     options = parser.parse_args()
 
     if options.command == 'l':
-        with x7ZipFile(options.archive_name.name) as zipfile:
-
+        with x7ZipFile(options.archive_name.name, pwd=options.password) as zipfile:
             total_compress_size = 0
 
             nofilter = len(options.file_names) == 0
@@ -54,15 +55,19 @@ def main():
                 else:
                     print(f'{date_time[0]:04}-{date_time[1]:02}-{date_time[2]:02} {date_time[3]:02}:{date_time[4]:02}:{date_time[5]:02}', end=' ')
 
+                mode = ['.', '.', '.', '.', '.', ]
                 if info.is_dir():
-                    print('D....', end=' ')
+                    mode[0] = 'D'
                     folder_count += 1
-                else:
-                    if info.is_file():
-                        print('....A', end=' ')
-                    else:
-                        print('.....', end=' ')
+
+                if info.is_readonly():
+                    mode[1] = 'R'
+
+                if info.is_file():
+                    mode[4] = 'A'
                     file_count += 1
+
+                print(''.join(mode), end=' ')
 
                 print(str(info.file_size).rjust(12), end=' ')
                 print((str(info.compress_size) if info.compress_size is not None else '').rjust(12), end='  ')
