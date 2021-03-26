@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # Copyright 2021 UuuNyaa <UuuNyaa@gmail.com>
-# All rights reserved.
+# This file is part of x7zipfile.
 #
 # BSD 3-Clause License
 #
@@ -35,9 +35,8 @@ import os
 import re
 import subprocess
 import sys
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Callable, Dict, Iterator, List, Tuple, Union
+from typing import Callable, Iterator, List, Tuple, Union
 
 _WIN32 = sys.platform == "win32"
 _EXECUTABLES = ['7z', '7za', '7zr'] + (['7z.exe', '7za.exe', '7zr.exe'] if _WIN32 else [])
@@ -67,7 +66,7 @@ class x7ZipInfo:
 
         filename
             File name with relative path.
-            Path separator is "/".  Always unicode string.
+            Path separator is '/'.  Always unicode string.
 
         date_time
             File modification timestamp. As tuple of (year, month, day, hour, minute, second).
@@ -158,7 +157,6 @@ class _Executor:
     def _popen(self, command: Union[str, List[str]]) -> subprocess.Popen:
         """Disconnect command from parent fds, read only from stdout.
         """
-        creationflags = 0x08000000 if _WIN32 else 0  # CREATE_NO_WINDOW
         try:
             return subprocess.Popen(
                 command,
@@ -166,7 +164,7 @@ class _Executor:
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 stdin=subprocess.DEVNULL,
-                creationflags=creationflags,
+                creationflags=0x08000000 if _WIN32 else 0  # CREATE_NO_WINDOW
             )
         except OSError as e:
             if e.errno == errno.ENOENT:
@@ -231,8 +229,7 @@ class _Executor:
         ]
     ]
 
-    def execute_list(self, archive_name: str, password: Union[str, None] = None) -> List[x7ZipInfo]:
-        info_list: List[x7ZipInfo] = []
+    def execute_list(self, archive_name: str, password: Union[str, None] = None) -> Iterator[x7ZipInfo]:
         info = None
         for line in self.execute([
             self.executable,
@@ -252,8 +249,8 @@ class _Executor:
                     raise x7ZipError(f'parse error: {line}')
 
                 if prefix == 'Path = ':
-                    if info is not None:
-                        info_list.append(info)
+                    if info and info.filename:
+                        yield info
 
                     info = x7ZipInfo(filename=None if info is None else value)
 
@@ -265,10 +262,8 @@ class _Executor:
 
                 setattr(info, property_name, value)
 
-        if info is not None:
-            info_list.append(info)
-
-        return info_list[1:]
+        if info and info.filename:
+            yield info
 
     def execute_extract(
         self,
@@ -323,14 +318,12 @@ class x7ZipFile:
     def __init__(
         self,
         file: Union[str, bytes, os.PathLike],
-        mode='r',
+        mode: str = 'r',
         pwd: Union[str, None] = None,
-        charset=None,
     ):
         """Open the 7-zip file with mode read 'r'.
         """
         self._file = file if not isinstance(file, os.PathLike) else str(file)
-        self._charset = charset
 
         if mode != 'r':
             raise NotImplementedError('x7ZipFile supports only mode=r')

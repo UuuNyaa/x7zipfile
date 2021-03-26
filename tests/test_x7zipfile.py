@@ -3,7 +3,6 @@
 # This file is part of x7zipfile.
 
 import glob
-import importlib
 import os
 import shutil
 import stat
