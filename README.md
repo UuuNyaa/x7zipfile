@@ -3,7 +3,7 @@ x7zipfile is a thin [7-zip](https://www.7-zip.org/) extract command wrapper for 
 
 ## Features
 - The interface follows the style of [zipfile](https://docs.python.org/3/library/zipfile.html).
-- Archive operations are handled by executing external tool: 7z, 7za or 7zr.
+- Archive operations are handled by executing external tool: 7z.
 - Works with single file.
 - Supports extract and list operations.
 - **Not** supports compress operations.

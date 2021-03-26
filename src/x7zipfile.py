@@ -39,7 +39,7 @@ from dataclasses import dataclass
 from typing import Callable, Iterator, List, Tuple, Union
 
 _WIN32 = sys.platform == "win32"
-_EXECUTABLES = ['7z', '7za', '7zr'] + (['7z.exe', '7za.exe', '7zr.exe'] if _WIN32 else [])
+_EXECUTABLES = ['7z'] + (['7z.exe'] if _WIN32 else [])
 
 
 class x7ZipError(Exception):
